@@ -1,0 +1,27 @@
+{
+  "name": "sekitarnyabekasi",
+  "version": "1.0.0",
+  "description": "Aplikasi web menyediakan info transportasi umum di sekitar Kota Bekasi dan penampung aspirasi masyarakat seputar fasilitas umum Kota Bekasi.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GregoriusPrasetyo/sekitarnyabekasi.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/GregoriusPrasetyo/sekitarnyabekasi/issues"
+  },
+  "homepage": "https://github.com/GregoriusPrasetyo/sekitarnyabekasi#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.10",
+    "express": "^5.3.0",
+    "pg": "^8.23.1"
+  }
+}
