@@ -1,37 +1,47 @@
-# Sekitarnya Bekasi - Portal Aspirasi Fasilitas Umum Multi-Role
+# Sekitarnya Bekasi - Portal Aspirasi Fasilitas Umum Kota Bekasi
 
-Aplikasi web kolaboratif Kota Bekasi dengan arsitektur **Multi-Role** berbasis PostgreSQL 16:
-1. **Masyarakat (Citizen)**: Menyampaikan aspirasi & laporan fasilitas umum melalui forum dan peta interaktif.
-2. **Pemda (Pemerintah Daerah Kota Bekasi)**: Menerima, mengklarifikasi, dan wajib memberi balasan resmi serta tindak lanjut penyelesaian masalah.
-3. **Admin (Super Administrator)**: Hak akses tertinggi (highest privilege) untuk moderasi postingan, penanganan spam, kelola pengguna & role, serta pusat pelaporan kendala website.
+Aplikasi web pemetaan kolaboratif & penampung aspirasi fasilitas umum Kota Bekasi berbasis **Supabase Cloud Serverless** (tanpa backend server lokal).
 
 ---
 
-## 👥 Rincian Hak Akses & Peran (Role)
+## ⚡ Arsitektur Serverless (Supabase Only)
 
-| Peran | Hak Akses & Kemampuan |
-|---|---|
-| **Masyarakat** | - Mengisi formulir aspirasi (Nama, Email, Domisili Kecamatan, No. Telp, Fasilitas, Foto, Titik Koordinat Peta).<br>- Memantau status penanganan dan membaca balasan resmi dari Pemda di Forum Aspirasi.<br>- Mengirimkan laporan kendala sistem/website kepada Admin. |
-| **Pemda** | - Menerima antrean aspirasi masyarakat berdasarkan wilayah Kota Bekasi.<br>- Mengklarifikasi status laporan (`menunggu_validasi`, `terverifikasi`, `dalam_tinjauan`, `sedang_dikerjakan`, `selesai`, `ditolak`).<br>- **Wajib memberikan balasan resmi & tindak lanjut** pada setiap masalah yang diselesaikan (`tindak_lanjut` table & auto notification). |
-| **Admin** | - **Highest Privilege**: Mengedit seluruh judul & deskripsi laporan di web.<br>- **Moderasi Spam**: Menandai postingan sebagai spam atau menghapus postingan permanen.<br>- **Manajemen Pengguna**: Mengubah role pengguna (`masyarakat`, `pemda`, `admin`) atau menghapus pengguna.<br>- **Pusat Kendala Website**: Menerima aduan bug, error, atau spam dari pengguna dan memperbarui status penanganannya. |
+Aplikasi ini tidak memerlukan server Node.js atau Docker lokal. Seluruh operasi database berjalan langsung melalui **Supabase JavaScript Client v2** dari browser secara aman:
 
----
-
-## 🗄️ Tabel Database PostgreSQL (`pemetaan_kolaboratif`)
-1. **`users`**: Data akun pengguna, domisili, nomor telepon, dan role ENUM (`masyarakat`, `pemda`, `admin`).
-2. **`infrastruktur`**: Aset fasilitas umum (Jalan, Jembatan, Drainase, Halte, PJU, dll) beserta koordinat GPS.
-3. **`laporan_masalah`**: Aspirasi masyarakat lengkap dengan koordinat, foto, status, dan flag `is_spam`.
-4. **`validasi_ai`**: Skor akurasi koordinat dan analisis otomatis AI.
-5. **`tindak_lanjut`**: Log balasan resmi dan bukti perbaikan fisik dari dinas Pemda.
-6. **`notifikasi`**: Riwayat pemberitahuan status bagi pelapor.
-7. **`laporan_sistem`**: Wadah kontak pengguna ke Admin untuk melaporkan kendala/bug website.
+- **Frontend**: Single Page Application (HTML5, Tailwind CSS, Leaflet JS).
+- **Backend / Database**: Supabase Cloud (PostgreSQL + PostgREST API).
+- **Hosting**: Siap di-deploy langsung ke **Vercel**, Netlify, atau GitHub Pages.
 
 ---
 
-## 🚀 Menjalankan Aplikasi
-```bash
-# 1. Jalankan server (Node.js + PostgreSQL)
-node server.js
+## 👥 3 Peran Pengguna (Multi-Role)
+1. **Masyarakat**: Menyampaikan aspirasi dan keluhan fasilitas umum (Jalan, Jembatan, Drainase, Halte, dll) dengan menentukan titik lokasi pada peta interaktif Leaflet.
+2. **Pemda (Pemerintah Daerah)**: Menerima aspirasi masuk, mengklarifikasi status, dan **wajib memberikan balasan resmi & foto bukti perbaikan** pada setiap masalah yang telah ditangani.
+3. **Admin (Super Administrator)**: Hak akses tertinggi untuk memoderasi konten spam, menyunting postingan, mengelola hak akses akun, dan meninjau laporan kendala website.
+
+---
+
+## 🚀 Cara Menjalankan & Menghubungkan ke Supabase
+
+### 1. Siapkan Database Supabase
+1. Buat proyek gratis di [supabase.com](https://supabase.com).
+2. Masuk ke menu **SQL Editor**, buka berkas [Database/supabase_schema.sql](file:///workspaces/sekitarnyabekasi/Database/supabase_schema.sql), lalu tempel kueri dan klik **Run**.
+3. Di **Project Settings ➔ API**, salin **Project URL** dan **Anon Public Key**.
+
+### 2. Atur Kredensial
+Buka [supabase-config.js](file:///workspaces/sekitarnyabekasi/supabase-config.js) dan isi:
+```javascript
+window.SUPABASE_CONFIG = {
+  url: 'https://YOUR_PROJECT_REF.supabase.co',
+  anonKey: 'YOUR_SUPABASE_ANON_KEY'
+};
 ```
-Akses portal melalui browser di: **`http://localhost:3000`**
-Gunakan bilah pemilih peran di bagian atas halaman untuk beralih antara portal **Masyarakat**, **Pemda**, dan **Admin**.
+*(Atau Anda bisa langsung membukanya di browser dan memasukkan kredensial melalui tombol "Konfigurasi Supabase" di pojok kanan atas).*
+
+---
+
+## 🌐 Deploy ke Vercel (Preset: "Other")
+1. Hubungkan repositori GitHub Anda ke Vercel.
+2. Pada pilihan **Framework Preset**, pilih **`Other`**.
+3. Biarkan **Build Command** dan **Output Directory** kosong / default.
+4. Klik **Deploy**! Aplikasi statis Anda langsung aktif di seluruh dunia.

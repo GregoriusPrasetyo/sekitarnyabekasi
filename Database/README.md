@@ -1,90 +1,54 @@
-# Dokumentasi Database: ERD Aplikasi Pemetaan Kolaboratif (Sekitarnya Bekasi)
+# ⚡ Konfigurasi Database Supabase Cloud (Sekitarnya Bekasi)
 
-Database ini dibangun menggunakan **PostgreSQL 16** berdasarkan diagram ERD sistem pemetaan kolaboratif Kota Bekasi.
+Repositori ini telah dikonfigurasi **100% Client-Side ke Supabase Cloud** tanpa memerlukan server backend lokal (no local server). 
 
----
-
-## 1. Konfigurasi Koneksi PostgreSQL
-- **Host**: `127.0.0.1` (atau `localhost`)
-- **Port**: `5432`
-- **Database Name**: `pemetaan_kolaboratif`
-- **User**: `postgres`
-- **Password**: `postgres`
-- **URL Koneksi**: `postgresql://postgres:postgres@127.0.0.1:5432/pemetaan_kolaboratif`
+Aplikasi web dapat langsung di-deploy ke **Vercel, Netlify, atau GitHub Pages** sebagai web statis modern.
 
 ---
 
-## 2. Struktur Relasi & 6 Entitas ERD
+## 🚀 Panduan Setup Supabase (Hanya 2 Menit)
 
-### 🔑 Users
-Menyimpan data pengguna (masyarakat pelapor, petugas pemda/SKPD, dan admin).
-- `user_id` (INT, PK, Auto Increment)
-- `nama` (VARCHAR(150))
-- `email` (VARCHAR(150), UNIQUE)
-- `password` (VARCHAR(255))
-- `no_telepon` (VARCHAR(25))
-- `role` (ENUM: `'masyarakat'`, `'pemda'`, `'admin'`)
+### Langkah 1: Buat Proyek di Supabase
+1. Buka [https://supabase.com](https://supabase.com) dan login/daftar akun gratis.
+2. Klik tombol **New Project**.
+3. Beri nama proyek (misal: `sekitarnyabekasi`) dan tentukan password database.
+4. Pilih region terdekat (misal: `Singapore (ap-southeast-1)`).
 
-### 🔑 Infrastruktur
-Menyimpan aset fasilitas umum dan infrastruktur Kota Bekasi beserta titik koordinat geografis.
-- `infrastruktur_id` (INT, PK, Auto Increment)
-- `nama_tempat` (VARCHAR(200))
-- `kategori` (ENUM: `'jalan'`, `'jembatan'`, `'drainase'`, `'transportasi_publik'`, `'trotoar'`, `'penerangan_jalan'`, `'taman'`, `'lainnya'`)
-- `deskripsi` (TEXT)
-- `alamat` (TEXT)
-- `latitude` (DOUBLE PRECISION)
-- `longitude` (DOUBLE PRECISION)
-- `foto_url` (VARCHAR(500))
+### Langkah 2: Eksekusi Skema Database
+1. Pada dashboard proyek Supabase Anda, buka menu **SQL Editor** (ikon terminal di bilah samping kiri).
+2. Klik **New Query**.
+3. Buka berkas [Database/supabase_schema.sql](file:///workspaces/sekitarnyabekasi/Database/supabase_schema.sql), lalu salin seluruh kodenya.
+4. Tempel (*paste*) kode tersebut ke SQL Editor Supabase, lalu klik tombol **Run** (atau tekan `Ctrl + Enter`).
+5. Seluruh tabel, tipe data ENUM, relasi foreign key, index, dan kebijakan Row Level Security (RLS) akan otomatis dibuat dan siap digunakan!
 
-### 🔑 Laporan_Masalah
-Menyimpan aspirasi dan keluhan kerusakan fasilitas umum dari warga.
-- `laporan_id` (INT, PK, Auto Increment)
-- `user_id` (INT, FK ➔ `users.user_id`)
-- `infrastruktur_id` (INT, FK ➔ `infrastruktur.infrastruktur_id`)
-- `judul_laporan` (VARCHAR(255))
-- `deskripsi_masalah` (TEXT)
-- `foto_bukti` (VARCHAR(500))
-- `latitude` (DOUBLE PRECISION)
-- `longitude` (DOUBLE PRECISION)
-- `status_laporan` (ENUM: `'menunggu_validasi'`, `'terverifikasi'`, `'dalam_tinjauan'`, `'sedang_dikerjakan'`, `'selesai'`, `'ditolak'`)
-- `tanggal_lapor` (TIMESTAMP WITH TIME ZONE)
+### Langkah 3: Ambil Kredensial API Supabase
+1. Di dashboard Supabase, buka menu **Project Settings** (ikon gerigi di kiri bawah) ➔ pilih **API**.
+2. Salin 2 nilai berikut:
+   - **Project URL** (contoh: `https://xyzabcdefghijklmnopq.supabase.co`)
+   - **Project API Keys (`anon` / `public`)** (kunci panjang berawalan `eyJhbGci...`)
 
-### 🔑 Validasi_AI
-Menyimpan hasil audit otomatis berbasis AI terhadap akurasi koordinat dan deteksi gambar bukti.
-- `validasi_id` (INT, PK, Auto Increment)
-- `laporan_id` (INT, FK ➔ `laporan_masalah.laporan_id`)
-- `skor_akurasi_koordinat` (FLOAT / REAL)
-- `status_validasi` (ENUM: `'valid'`, `'akurasi_rendah'`, `'duplikat'`, `'anomali'`, `'tidak_valid'`)
-- `catatan_ai` (TEXT)
-- `waktu_validasi` (TIMESTAMP WITH TIME ZONE)
+### Langkah 4: Hubungkan ke Aplikasi Web
+Anda dapat menghubungkannya dengan salah satu dari dua cara berikut:
 
-### 🔑 Tindak_Lanjut
-Menyimpan log pekerjaan dan perbaikan lapangan oleh dinas/pemda terkait.
-- `tindak_lanjut_id` (INT, PK, Auto Increment)
-- `laporan_id` (INT, FK ➔ `laporan_masalah.laporan_id`)
-- `pemda_id` (INT, FK ➔ `users.user_id`)
-- `keterangan_tindakan` (TEXT)
-- `foto_hasil_perbaikan` (VARCHAR(500))
-- `status_terbaru` (VARCHAR(100))
-- `waktu_update` (TIMESTAMP WITH TIME ZONE)
+* **Cara A (Melalui File Repositori)**:
+  Buka berkas [supabase-config.js](file:///workspaces/sekitarnyabekasi/supabase-config.js) lalu masukkan kredensial:
+  ```javascript
+  window.SUPABASE_CONFIG = {
+    url: 'https://xyzabcdefghijklmnopq.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+  };
+  ```
 
-### 🔑 Notifikasi
-Menyimpan pesan pemberitahuan status tindak lanjut kepada pelapor maupun penugasan petugas pemda.
-- `notifikasi_id` (INT, PK, Auto Increment)
-- `user_id` (INT, FK ➔ `users.user_id`)
-- `laporan_id` (INT, FK ➔ `laporan_masalah.laporan_id`)
-- `pesan` (TEXT)
-- `is_read` (BOOLEAN)
-- `waktu_kirim` (TIMESTAMP WITH TIME ZONE)
+* **Cara B (Langsung di Tampilan Web)**:
+  Buka `index.html` di browser Anda, klik tombol **"Konfigurasi Supabase"** di pojok kanan atas, lalu masukkan Project URL dan Anon Key Anda. Pengaturan ini akan tersimpan di browser Anda.
 
 ---
 
-## 3. Menjalankan Ulang Skrip DDL & Seed
-
-```bash
-# Menjalankan schema SQL (DDL)
-docker exec -i postgres-db psql -U postgres -d pemetaan_kolaboratif < Database/schema.sql
-
-# Menjalankan data dummy realistis Kota Bekasi (Seed)
-docker exec -i postgres-db psql -U postgres -d pemetaan_kolaboratif < Database/seed.sql
-```
+## 🗄️ Struktur Entitas di Supabase
+1. **`users`**: Warga, petugas Pemda, dan Admin.
+2. **`infrastruktur`**: Aset fasilitas publik di Kota Bekasi.
+3. **`laporan_masalah`**: Aspirasi & keluhan warga (dilengkapi flag `is_spam`).
+4. **`validasi_ai`**: Hasil verifikasi otomatis koordinat lokasi & kategori fasilitas.
+5. **`tindak_lanjut`**: Log balasan resmi & bukti foto perbaikan dari dinas Pemda.
+6. **`notifikasi`**: Pemberitahuan status penanganan untuk akun warga.
+7. **`laporan_sistem`**: Tiket laporan kendala website yang dikirimkan ke Admin.
