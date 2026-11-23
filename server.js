@@ -7,17 +7,28 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// PostgreSQL Connection Pool
-const pool = new Pool({
-  host: process.env.DB_HOST || '127.0.0.1',
-  port: parseInt(process.env.DB_PORT || '5432', 10),
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
-  database: process.env.DB_NAME || 'pemetaan_kolaboratif',
-  max: 15,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-});
+// PostgreSQL Connection Pool (Supports both standard parameters and DATABASE_URL for Vercel/Neon/Supabase)
+const poolConfig = process.env.DATABASE_URL
+  ? {
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+    }
+  : {
+      host: process.env.DB_HOST || '127.0.0.1',
+      port: parseInt(process.env.DB_PORT || '5432', 10),
+      user: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD || 'postgres',
+      database: process.env.DB_NAME || 'pemetaan_kolaboratif',
+      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+      max: 15,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+    };
+
+const pool = new Pool(poolConfig);
 
 // Middleware
 app.use(cors());
@@ -596,8 +607,13 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Start listening
-app.listen(PORT, () => {
-  console.log(`🚀 Aplikasi Sekitarnya Bekasi berjalan di http://localhost:${PORT}`);
-  console.log(`📊 PostgreSQL Database terhubung: ${process.env.DB_NAME || 'pemetaan_kolaboratif'}`);
-});
+// Export for Vercel Serverless
+module.exports = app;
+
+// Start listening if run directly (local development)
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`🚀 Aplikasi Sekitarnya Bekasi berjalan di http://localhost:${PORT}`);
+    console.log(`📊 PostgreSQL Database terhubung: ${process.env.DATABASE_URL ? 'Cloud Database (DATABASE_URL)' : (process.env.DB_NAME || 'pemetaan_kolaboratif')}`);
+  });
+}
