@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Admin – Sekitarnya Bekasi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../supabase-config.js"></script>
+  <script src="../auth.js"></script>
+  <script src="../db.js"></script>
+  <script>
+    tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] } } } }
+  </script>
+  <style>
+    .fade-in { animation: fadeIn .35s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    #confirm-backdrop { backdrop-filter: blur(4px); }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
+
+<!-- ===== AUTH SCREEN ===== -->
+<div id="screen-auth" class="min-h-screen flex flex-col">
+  <!-- Clean whitespace top (no navbar) -->
+  <div class="pt-10 sm:pt-16"></div>
+
+  <main class="flex-1 flex items-start justify-center px-4 pb-12">
+    <div class="w-full max-w-sm fade-in">
+
+      <a href="../index.html" class="inline-flex items-center space-x-1.5 text-xs text-slate-400 hover:text-purple-400 mb-8 transition-colors">
+        <i class="fa-solid fa-arrow-left"></i><span>Kembali ke Gateway</span>
+      </a>
+
+      <!-- Header -->
+      <div class="text-center mb-8">
+        <div class="w-16 h-16 rounded-3xl bg-gradient-to-br from-purple-700 to-purple-900 text-white flex items-center justify-center text-3xl shadow-2xl shadow-purple-900/50 mx-auto mb-4 border border-purple-600/50">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <h1 class="text-2xl font-extrabold text-white">Admin Control Center</h1>
+        <p class="text-xs text-slate-400 mt-1">Sekitarnya Bekasi · Highest Privilege</p>
+      </div>
+
+      <!-- Login Card -->
+      <div class="bg-slate-800 rounded-3xl border border-slate-700/80 shadow-2xl p-6 sm:p-8">
+
+        <div class="bg-purple-900/40 border border-purple-700/50 rounded-xl p-3 mb-5 text-xs text-purple-300">
+          <i class="fa-solid fa-lock mr-1.5"></i>Akses terbatas. Hanya administrator resmi yang diizinkan masuk.
+        </div>
+
+        <div id="auth-msg" class="hidden mb-4 px-4 py-3 rounded-xl text-xs font-semibold"></div>
+
+        <form id="form-login" onsubmit="doLogin(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1.5">Username Admin <span class="text-purple-400">*</span></label>
+            <div class="relative">
+              <i class="fa-solid fa-user absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+              <input id="login-username" type="text" autocomplete="username" required
+                placeholder="admin"
+                class="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-slate-600 bg-slate-700/50 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-slate-500">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1.5">Password Admin <span class="text-purple-400">*</span></label>
+            <div class="relative">
+              <i class="fa-solid fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+              <input id="login-password" type="password" autocomplete="current-password" required
+                placeholder="••••••••••••••"
+                class="w-full pl-9 pr-10 py-2.5 text-sm rounded-xl border border-slate-600 bg-slate-700/50 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent placeholder-slate-500">
+              <button type="button" onclick="togglePw('login-password', this)"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-200 text-xs">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            </div>
+          </div>
+          <button type="submit"
+            class="w-full bg-purple-700 hover:bg-purple-600 text-white font-bold py-3 rounded-xl text-sm transition-all shadow-lg shadow-purple-900/50 flex items-center justify-center space-x-2 border border-purple-600/50">
+            <i class="fa-solid fa-shield-halved"></i><span>Masuk ke Control Center</span>
+          </button>
+        </form>
+
+      </div>
+
+      <!-- Credentials hint (admin can see own credentials safely in context) -->
+      <div class="mt-4 bg-slate-800/60 border border-slate-700 rounded-2xl p-4 text-xs text-slate-400">
+        <p class="font-semibold text-slate-300 mb-1"><i class="fa-solid fa-key mr-1"></i>Credential Admin</p>
+        <p>Username: <code class="bg-slate-700 text-purple-300 px-1.5 rounded">admin</code></p>
+        <p class="mt-1">Password: <code class="bg-slate-700 text-purple-300 px-1.5 rounded">Un1qu3Ech!na4@</code></p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ===== ADMIN DASHBOARD ===== -->
+<div id="screen-dashboard" class="hidden min-h-screen flex flex-col bg-slate-50 text-slate-800">
+
+  <div class="pt-0"></div>
+
+  <!-- Top Bar -->
+  <header class="bg-slate-900 border-b border-slate-700 sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-purple-700 text-white flex items-center justify-center text-sm shadow">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <div>
+          <span class="text-sm font-bold text-white">Sekitarnya Bekasi</span>
+          <span class="ml-2 text-[10px] font-semibold text-purple-300 bg-purple-900/60 px-2 py-0.5 rounded-full border border-purple-700">SUPER ADMIN</span>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3">
+        <span class="text-xs text-slate-400 hidden sm:block">admin@sekitarnyabekasi.go.id</span>
+        <button onclick="AuthApp.logout('../index.html')"
+          class="flex items-center space-x-1.5 text-xs text-red-400 hover:text-red-200 bg-red-900/30 hover:bg-red-900/50 border border-red-800 px-3 py-1.5 rounded-lg transition-colors font-semibold">
+          <i class="fa-solid fa-right-from-bracket"></i><span>Keluar</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+
+    <!-- Summary Stats -->
+    <div id="stats-row" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"></div>
+
+    <!-- Page tabs -->
+    <div class="flex space-x-1 bg-slate-200/70 rounded-2xl p-1 mb-8 text-xs font-semibold overflow-x-auto">
+      <button onclick="showPage('moderation')" id="pt-moderation"
+        class="flex-shrink-0 py-2 px-4 rounded-xl text-center transition-all bg-white shadow text-purple-700">
+        <i class="fa-solid fa-shield-halved mr-1"></i>Moderasi
+      </button>
+      <button onclick="showPage('users')" id="pt-users"
+        class="flex-shrink-0 py-2 px-4 rounded-xl text-center transition-all text-slate-600 hover:bg-white/60">
+        <i class="fa-solid fa-users-gear mr-1"></i>Pengguna
+      </button>
+      <button onclick="showPage('tickets')" id="pt-tickets"
+        class="flex-shrink-0 py-2 px-4 rounded-xl text-center transition-all text-slate-600 hover:bg-white/60">
+        <i class="fa-solid fa-ticket mr-1"></i>Tiket Kendala
+      </button>
+      <button onclick="showPage('all-reports')" id="pt-all-reports"
+        class="flex-shrink-0 py-2 px-4 rounded-xl text-center transition-all text-slate-600 hover:bg-white/60">
+        <i class="fa-solid fa-list-check mr-1"></i>Semua Laporan
+      </button>
+    </div>
+
+    <!-- === MODERASI === -->
+    <div id="page-moderation" class="fade-in">
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="text-lg font-bold text-slate-900"><i class="fa-solid fa-shield-halved text-purple-700 mr-2"></i>Moderasi Spam & Postingan</h2>
+        <div class="flex space-x-2">
+          <button onclick="filterMod('all')" id="mod-btn-all" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-purple-700 text-white transition-all">Semua</button>
+          <button onclick="filterMod('spam')" id="mod-btn-spam" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300 transition-all">Spam</button>
+          <button onclick="filterMod('clean')" id="mod-btn-clean" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300 transition-all">Bersih</button>
+        </div>
+      </div>
+      <div id="mod-list" class="space-y-3">
+        <div class="text-center py-12 text-slate-400 text-sm"><i class="fa-solid fa-spinner fa-spin text-2xl mb-3 block"></i>Memuat data...</div>
+      </div>
+    </div>
+
+    <!-- === PENGGUNA === -->
+    <div id="page-users" class="hidden fade-in">
+      <h2 class="text-lg font-bold text-slate-900 mb-5"><i class="fa-solid fa-users-gear text-purple-700 mr-2"></i>Manajemen Pengguna</h2>
+      <div class="bg-white rounded-3xl border border-slate-200 shadow overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 uppercase tracking-wider">
+                <th class="text-left px-5 py-3">Pengguna</th>
+                <th class="text-left px-5 py-3">Email</th>
+                <th class="text-left px-5 py-3">Role</th>
+                <th class="text-left px-5 py-3">Domisili</th>
+                <th class="text-left px-5 py-3">Bergabung</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody">
+              <tr><td colspan="5" class="text-center py-8 text-slate-400 text-xs"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Memuat data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- === TIKET KENDALA === -->
+    <div id="page-tickets" class="hidden fade-in">
+      <h2 class="text-lg font-bold text-slate-900 mb-5"><i class="fa-solid fa-ticket text-purple-700 mr-2"></i>Tiket Kendala Website</h2>
+      <div id="tickets-list" class="space-y-3">
+        <div class="text-center py-12 text-slate-400 text-sm"><i class="fa-solid fa-spinner fa-spin text-2xl mb-3 block"></i>Memuat tiket...</div>
+      </div>
+    </div>
+
+    <!-- === SEMUA LAPORAN === -->
+    <div id="page-all-reports" class="hidden fade-in">
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="text-lg font-bold text-slate-900"><i class="fa-solid fa-list-check text-purple-700 mr-2"></i>Semua Laporan (Tampilan Admin)</h2>
+        <select id="all-status-filter" onchange="loadAllReports()" class="text-xs px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500">
+          <option value="all">Semua Status</option>
+          <option value="menunggu_validasi">Menunggu Validasi</option>
+          <option value="sedang_dikerjakan">Sedang Dikerjakan</option>
+          <option value="selesai">Selesai</option>
+          <option value="ditolak">Ditolak</option>
+        </select>
+      </div>
+      <div id="all-reports-list" class="space-y-3">
+        <div class="text-center py-12 text-slate-400 text-sm"><i class="fa-solid fa-spinner fa-spin text-2xl mb-3 block"></i>Memuat semua laporan...</div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ===== CONFIRM MODAL ===== -->
+<div id="confirm-backdrop" class="hidden fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200">
+    <div class="text-center mb-5">
+      <div id="confirm-icon" class="text-4xl mb-3"></div>
+      <h3 id="confirm-title" class="font-bold text-slate-900 text-base mb-2"></h3>
+      <p id="confirm-desc" class="text-xs text-slate-500 leading-relaxed"></p>
+    </div>
+    <div class="flex space-x-3">
+      <button onclick="closeConfirm()" class="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-semibold text-sm">Batal</button>
+      <button id="confirm-ok" class="flex-1 py-2.5 rounded-xl text-white font-bold text-sm transition-all">Ya, Lanjutkan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TICKET RESOLVE MODAL ===== -->
+<div id="ticket-modal-backdrop" class="hidden fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4" style="backdrop-filter:blur(4px)">
+  <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-bold text-slate-900 text-base"><i class="fa-solid fa-ticket text-purple-700 mr-2"></i>Tanggapi Tiket Kendala</h3>
+      <button onclick="closeTicketModal()" class="text-slate-400 hover:text-slate-700 text-xl"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="ticket-modal-info" class="bg-slate-50 rounded-xl p-3 mb-4 border border-slate-200 text-sm"></div>
+    <form id="form-ticket-resolve" onsubmit="submitTicketResolve(event)" class="space-y-4">
+      <input type="hidden" id="tk-id">
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1.5">Status Penanganan</label>
+        <select id="tk-status" class="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white">
+          <option value="sedang_ditangani">Sedang Ditangani</option>
+          <option value="selesai">Selesai Ditangani</option>
+          <option value="tidak_valid">Tidak Valid / Duplikat</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1.5">Catatan Admin</label>
+        <textarea id="tk-catatan" rows="3" placeholder="Tanggapan atau catatan untuk pelapor..."
+          class="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"></textarea>
+      </div>
+      <div id="tk-msg" class="hidden px-4 py-3 rounded-xl text-xs font-semibold"></div>
+      <div class="flex space-x-3">
+        <button type="button" onclick="closeTicketModal()" class="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-semibold text-sm">Batal</button>
+        <button type="submit" class="flex-1 bg-purple-700 hover:bg-purple-600 text-white font-bold py-2.5 rounded-xl text-sm">Simpan</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function $(id) { return document.getElementById(id); }
+
+  function showMsgEl(el, msg, type) {
+    if (!el) return;
+    el.textContent = msg;
+    el.className = `px-4 py-3 rounded-xl text-xs font-semibold ${type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200'}`;
+    el.classList.remove('hidden');
+  }
+
+  function togglePw(id, btn) {
+    const inp = $(id);
+    if (inp.type === 'password') { inp.type = 'text'; btn.innerHTML = '<i class="fa-solid fa-eye-slash"></i>'; }
+    else { inp.type = 'password'; btn.innerHTML = '<i class="fa-solid fa-eye"></i>'; }
+  }
+
+  /* AUTH */
+  async function doLogin(e) {
+    e.preventDefault();
+    const result = await AuthApp.login('admin', $('login-username').value, $('login-password').value);
+    if (result.success) {
+      showDashboard(result.user);
+    } else {
+      const msg = $('auth-msg');
+      msg.textContent = result.error;
+      msg.className = 'mb-4 px-4 py-3 rounded-xl text-xs font-semibold bg-red-900/40 text-red-300 border border-red-800';
+      msg.classList.remove('hidden');
+    }
+  }
+
+  /* DASHBOARD */
+  async function showDashboard(user) {
+    $('screen-auth').classList.add('hidden');
+    $('screen-dashboard').classList.remove('hidden');
+    document.body.classList.remove('bg-slate-900', 'text-slate-100');
+    document.body.classList.add('bg-slate-50', 'text-slate-800');
+    loadStats();
+    loadModeration('all');
+  }
+
+  function showPage(page) {
+    ['moderation', 'users', 'tickets', 'all-reports'].forEach(p => {
+      const el = $('page-' + p);
+      if (el) el.classList.add('hidden');
+      const btn = $('pt-' + p);
+      if (btn) { btn.classList.remove('bg-white', 'shadow', 'text-purple-700'); btn.classList.add('text-slate-600'); }
+    });
+    const active = $('page-' + page);
+    if (active) active.classList.remove('hidden');
+    const activeBtn = $('pt-' + page);
+    if (activeBtn) { activeBtn.classList.add('bg-white', 'shadow', 'text-purple-700'); activeBtn.classList.remove('text-slate-600'); }
+
+    if (page === 'users') loadUsers();
+    if (page === 'tickets') loadTickets();
+    if (page === 'all-reports') loadAllReports();
+  }
+
+  function statusBadge(s, small = false) {
+    const map = { menunggu_validasi:'bg-yellow-100 text-yellow-800 border-yellow-200', terverifikasi:'bg-blue-100 text-blue-800 border-blue-200', sedang_dikerjakan:'bg-orange-100 text-orange-800 border-orange-200', selesai:'bg-green-100 text-green-800 border-green-200', ditolak:'bg-red-100 text-red-800 border-red-200' };
+    const labels = { menunggu_validasi:'Menunggu', terverifikasi:'Terverifikasi', sedang_dikerjakan:'Dikerjakan', selesai:'Selesai', ditolak:'Ditolak' };
+    return `<span class="${small?'text-[9px]':'text-[10px]'} font-bold px-2 py-0.5 rounded-full border ${map[s]||'bg-slate-100 text-slate-700 border-slate-200'}">${labels[s]||s}</span>`;
+  }
+
+  function roleBadge(r) {
+    const map = { admin:'bg-purple-100 text-purple-800 border-purple-200', pemda:'bg-teal-100 text-teal-800 border-teal-200', masyarakat:'bg-blue-100 text-blue-800 border-blue-200' };
+    return `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${map[r]||'bg-slate-100 text-slate-700 border-slate-200'}">${r}</span>`;
+  }
+
+  function timeAgo(iso) {
+    if (!iso) return '-';
+    const diff = Date.now() - new Date(iso).getTime();
+    const m = Math.floor(diff/60000), h = Math.floor(m/60), d = Math.floor(h/24);
+    if (d > 0) return d + ' hari lalu';
+    if (h > 0) return h + ' jam lalu';
+    if (m > 0) return m + ' menit lalu';
+    return 'Baru saja';
+  }
+
+  /* STATS */
+  async function loadStats() {
+    try {
+      const data = await DBService.getLaporan({});
+      const total = data.length;
+      const spam = data.filter(l => l.is_spam).length;
+      const pending = data.filter(l => l.status_laporan === 'menunggu_validasi').length;
+      const done = data.filter(l => l.status_laporan === 'selesai').length;
+
+      $('stats-row').innerHTML = [
+        { icon: 'fa-list', label: 'Total Laporan', val: total, color: 'purple' },
+        { icon: 'fa-clock', label: 'Menunggu Validasi', val: pending, color: 'yellow' },
+        { icon: 'fa-circle-check', label: 'Selesai Ditangani', val: done, color: 'green' },
+        { icon: 'fa-ban', label: 'Ditandai Spam', val: spam, color: 'red' }
+      ].map(s => `
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold text-slate-500">${s.label}</span>
+            <div class="w-8 h-8 rounded-xl bg-${s.color}-100 text-${s.color}-700 flex items-center justify-center text-sm">
+              <i class="fa-solid ${s.icon}"></i>
+            </div>
+          </div>
+          <p class="text-3xl font-extrabold text-slate-900">${s.val}</p>
+        </div>`).join('');
+    } catch (e) {
+      $('stats-row').innerHTML = '';
+    }
+  }
+
+  /* MODERATION */
+  let allModerationData = [];
+  async function loadModeration(filterMode) {
+    const list = $('mod-list');
+    list.innerHTML = `<div class="text-center py-12 text-slate-400 text-sm"><i class="fa-solid fa-spinner fa-spin text-2xl mb-3 block"></i>Memuat data laporan...</div>`;
+    try {
+      allModerationData = await DBService.getLaporan({});
+    } catch (e) {
+      allModerationData = [];
+    }
+    renderMod(filterMode || 'all');
+  }
+
+  function filterMod(mode) {
+    ['all','spam','clean'].forEach(m => {
+      const btn = $('mod-btn-' + m);
+      btn.className = `text-xs font-bold px-3 py-1.5 rounded-lg transition-all ${m === mode ? 'bg-purple-700 text-white' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}`;
+    });
+    renderMod(mode);
+  }
+
+  function renderMod(mode) {
+    const list = $('mod-list');
+    let data = allModerationData;
+    if (mode === 'spam') data = data.filter(l => l.is_spam);
+    if (mode === 'clean') data = data.filter(l => !l.is_spam);
+
+    if (data.length === 0) {
+      list.innerHTML = `<div class="text-center py-12 text-slate-400 text-sm"><i class="fa-solid fa-inbox text-4xl mb-3 block opacity-50"></i><p>Tidak ada laporan di kategori ini.</p></div>`;
+      return;
+    }
+
+    list.innerHTML = data.map(lap => `
+      <div class="bg-white rounded-2xl border ${lap.is_spam ? 'border-red-300 bg-red-50/50' : 'border-slate-200'} shadow-sm p-4 hover:shadow-md transition-shadow">
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center flex-wrap gap-1.5 mb-1.5">
+              ${statusBadge(lap.status_laporan)}
+              ${lap.is_spam ? '<span class="text-[10px] font-bold bg-red-100 text-red-800 border border-red-200 px-2 py-0.5 rounded-full"><i class="fa-solid fa-ban mr-1"></i>SPAM</span>' : ''}
+              <span class="text-[10px] text-slate-400">#${lap.laporan_id}</span>
+            </div>
+            <h3 class="font-bold text-slate-900 text-sm truncate">${lap.judul_laporan}</h3>
+            <p class="text-xs text-slate-500 mt-0.5"><i class="fa-solid fa-user mr-1"></i>${lap.pelapor_nama} · ${timeAgo(lap.tanggal_lapor)}</p>
+            <p class="text-xs text-slate-600 mt-1 leading-relaxed line-clamp-2">${lap.deskripsi_masalah}</p>
+          </div>
+          <div class="flex flex-col gap-2 flex-shrink-0">
+            <button onclick="confirmToggleSpam(${lap.laporan_id}, ${lap.is_spam})"
+              class="flex items-center space-x-1 text-xs font-bold px-3 py-1.5 rounded-xl transition-all ${lap.is_spam ? 'bg-green-100 text-green-800 border border-green-300 hover:bg-green-200' : 'bg-red-100 text-red-800 border border-red-300 hover:bg-red-200'}">
+              <i class="fa-solid ${lap.is_spam ? 'fa-shield-check' : 'fa-ban'}"></i>
+              <span>${lap.is_spam ? 'Pulihkan' : 'Tandai Spam'}</span>
+            </button>
+            <button onclick="confirmDelete(${lap.laporan_id}, '${encodeURIComponent(lap.judul_laporan)}')"
+              class="flex items-center space-x-1 text-xs font-bold px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 border border-slate-300 hover:bg-red-100 hover:text-red-800 hover:border-red-300 transition-all">
+              <i class="fa-solid fa-trash"></i><span>Hapus</span>
+            </button>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  /* USERS */
+  async function loadUsers() {
+    const tbody = $('users-tbody');
+    try {
+      const data = await DBService.getUsers();
+      if (!data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-slate-400 text-xs">Tidak ada pengguna.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = data.map(u => `
+        <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+          <td class="px-5 py-3">
+            <div class="font-semibold text-sm text-slate-900">${u.nama || u.username}</div>
+            <div class="text-xs text-slate-400">@${u.username}</div>
+          </td>
+          <td class="px-5 py-3 text-xs text-slate-600">${u.email || '-'}</td>
+          <td class="px-5 py-3">${roleBadge(u.role)}</td>
+          <td class="px-5 py-3 text-xs text-slate-600">${u.domisili || '-'}</td>
+          <td class="px-5 py-3 text-xs text-slate-400">${u.created_at ? new Date(u.created_at).toLocaleDateString('id-ID') : '-'}</td>
+        </tr>`).join('');
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-500 text-xs">Gagal memuat data pengguna.</td></tr>`;
+    }
+  }
+
+  /* TICKETS */
+  async function loadTickets() {
+    const list = $('tickets-list');
+    try {
+      const data = await DBService.getLaporanSistem();
+      if (!data || data.length === 0) {
+        list.innerHTML = `<div class="text-center py-12 text-slate-400 text-sm"><i class="fa-solid fa-ticket text-4xl mb-3 block opacity-50"></i><p>Tidak ada tiket kendala.</p></div>`;
+        return;
+      }
+      const statusColors = { menunggu_penanganan:'bg-yellow-100 text-yellow-800 border-yellow-200', sedang_ditangani:'bg-blue-100 text-blue-800 border-blue-200', selesai:'bg-green-100 text-green-800 border-green-200', tidak_valid:'bg-slate-100 text-slate-700 border-slate-200' };
+      list.innerHTML = data.map(t => `
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 hover:shadow-md transition-shadow">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-1.5">
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusColors[t.status_kendala]||statusColors.menunggu_penanganan}">${(t.status_kendala||'menunggu').replace(/_/g,' ')}</span>
+                <span class="text-[10px] text-slate-400">#${t.kendala_id} · ${timeAgo(t.tanggal_lapor)}</span>
+              </div>
+              <h3 class="font-bold text-slate-900 text-sm">${t.kategori_kendala}</h3>
+              <p class="text-xs text-slate-500 mt-0.5"><i class="fa-solid fa-user mr-1"></i>${t.nama_pelapor} (${t.email_pelapor})</p>
+              <p class="text-xs text-slate-600 mt-1 leading-relaxed">${t.deskripsi_kendala}</p>
+              ${t.catatan_admin ? `<div class="mt-2 bg-purple-50 border border-purple-200 rounded-lg p-2 text-xs text-purple-800"><i class="fa-solid fa-comment-dots mr-1"></i>${t.catatan_admin}</div>` : ''}
+            </div>
+            <button onclick="openTicketModal(${t.kendala_id}, '${encodeURIComponent(t.kategori_kendala)}', '${encodeURIComponent(t.deskripsi_kendala)}')"
+              class="flex-shrink-0 flex items-center space-x-1.5 bg-purple-700 hover:bg-purple-600 text-white font-bold px-3 py-1.5 rounded-xl text-xs transition-all">
+              <i class="fa-solid fa-reply"></i><span>Tanggapi</span>
+            </button>
+          </div>
+        </div>`).join('');
+    } catch (err) {
+      list.innerHTML = `<div class="text-center py-8 text-red-500 text-sm">Gagal memuat tiket.</div>`;
+    }
+  }
+
+  /* ALL REPORTS */
+  async function loadAllReports() {
+    const list = $('all-reports-list');
+    list.innerHTML = `<div class="text-center py-12 text-slate-400 text-sm"><i class="fa-solid fa-spinner fa-spin text-2xl mb-3 block"></i>Memuat semua laporan...</div>`;
+    try {
+      const filter = { status_laporan: $('all-status-filter').value };
+      const data = await DBService.getLaporan(filter);
+      if (!data || data.length === 0) {
+        list.innerHTML = `<div class="text-center py-12 text-slate-400 text-sm"><i class="fa-solid fa-inbox text-4xl mb-3 block opacity-50"></i><p>Tidak ada laporan.</p></div>`;
+        return;
+      }
+      list.innerHTML = data.map(lap => `
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex-1">
+              <div class="flex items-center flex-wrap gap-1.5 mb-1.5">
+                ${statusBadge(lap.status_laporan)}
+                ${lap.is_spam ? '<span class="text-[9px] font-bold bg-red-100 text-red-800 border border-red-200 px-2 py-0.5 rounded-full">SPAM</span>' : ''}
+                <span class="text-[10px] text-slate-400">#${lap.laporan_id}</span>
+              </div>
+              <h3 class="font-bold text-sm text-slate-900">${lap.judul_laporan}</h3>
+              <p class="text-xs text-slate-500 mt-0.5"><i class="fa-solid fa-user mr-1"></i>${lap.pelapor_nama} · ${lap.pelapor_domisili} · ${timeAgo(lap.tanggal_lapor)}</p>
+              <p class="text-xs text-slate-600 mt-1 leading-relaxed line-clamp-2">${lap.deskripsi_masalah}</p>
+            </div>
+            <div class="flex flex-col gap-1.5 flex-shrink-0">
+              <button onclick="confirmToggleSpam(${lap.laporan_id}, ${lap.is_spam})"
+                class="text-[11px] font-bold px-2.5 py-1 rounded-lg ${lap.is_spam ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-red-100 text-red-800 border border-red-300'} transition-all hover:opacity-80">
+                ${lap.is_spam ? 'Pulihkan' : 'Spam'}
+              </button>
+              <button onclick="confirmDelete(${lap.laporan_id}, '${encodeURIComponent(lap.judul_laporan)}')"
+                class="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 border border-slate-300 hover:bg-red-100 hover:text-red-800 hover:border-red-300 transition-all">
+                Hapus
+              </button>
+            </div>
+          </div>
+        </div>`).join('');
+    } catch (err) {
+      list.innerHTML = `<div class="text-center py-8 text-red-500 text-sm">Gagal memuat laporan.</div>`;
+    }
+  }
+
+  /* CONFIRM MODAL */
+  let _confirmCallback = null;
+  function showConfirm(icon, title, desc, okLabel, okClass, cb) {
+    $('confirm-icon').textContent = icon;
+    $('confirm-title').textContent = title;
+    $('confirm-desc').textContent = desc;
+    $('confirm-ok').textContent = okLabel;
+    $('confirm-ok').className = `flex-1 py-2.5 rounded-xl text-white font-bold text-sm transition-all ${okClass}`;
+    $('confirm-ok').onclick = () => { closeConfirm(); cb(); };
+    $('confirm-backdrop').classList.remove('hidden');
+  }
+  function closeConfirm() { $('confirm-backdrop').classList.add('hidden'); }
+
+  function confirmToggleSpam(id, currentSpam) {
+    showConfirm(
+      currentSpam ? '✅' : '🚫',
+      currentSpam ? 'Pulihkan Laporan?' : 'Tandai sebagai Spam?',
+      currentSpam ? 'Laporan ini akan dipulihkan dan terlihat kembali di forum publik.' : 'Laporan ini akan disembunyikan dari forum publik dan ditandai spam.',
+      currentSpam ? 'Ya, Pulihkan' : 'Ya, Tandai Spam',
+      currentSpam ? 'bg-green-600 hover:bg-green-500' : 'bg-red-600 hover:bg-red-500',
+      async () => {
+        await DBService.toggleSpam(id, currentSpam);
+        loadModeration('all');
+        loadStats();
+      }
+    );
+  }
+
+  function confirmDelete(id, judulEnc) {
+    showConfirm(
+      '🗑️',
+      'Hapus Laporan Ini?',
+      `"${decodeURIComponent(judulEnc)}" akan dihapus permanen dari database dan tidak dapat dipulihkan.`,
+      'Ya, Hapus Permanen',
+      'bg-red-600 hover:bg-red-500',
+      async () => {
+        await DBService.deleteLaporan(id);
+        loadModeration('all');
+        loadStats();
+      }
+    );
+  }
+
+  /* TICKET MODAL */
+  function openTicketModal(id, katEnc, deskEnc) {
+    $('tk-id').value = id;
+    $('tk-catatan').value = '';
+    $('tk-msg').classList.add('hidden');
+    $('ticket-modal-info').innerHTML = `
+      <p class="font-bold text-slate-900 mb-1 text-sm">${decodeURIComponent(katEnc)}</p>
+      <p class="text-xs text-slate-600 leading-relaxed">${decodeURIComponent(deskEnc)}</p>`;
+    $('ticket-modal-backdrop').classList.remove('hidden');
+  }
+  function closeTicketModal() { $('ticket-modal-backdrop').classList.add('hidden'); }
+
+  async function submitTicketResolve(e) {
+    e.preventDefault();
+    const result = await DBService.resolveLaporanSistem($('tk-id').value, $('tk-status').value, $('tk-catatan').value);
+    if (result.success) {
+      showMsgEl($('tk-msg'), '✅ Tiket berhasil diperbarui!', 'success');
+      setTimeout(() => { closeTicketModal(); loadTickets(); }, 1200);
+    } else {
+      showMsgEl($('tk-msg'), 'Gagal memperbarui tiket.', 'error');
+    }
+  }
+
+  /* INIT */
+  window.addEventListener('DOMContentLoaded', () => {
+    const session = AuthApp.getSession();
+    if (session && session.role === 'admin') showDashboard(session);
+  });
+</script>
+</body>
+</html>

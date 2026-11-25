@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Pemda – Sekitarnya Bekasi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../supabase-config.js"></script>
+  <script src="../auth.js"></script>
+  <script src="../db.js"></script>
+  <script>
+    tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] } } } }
+  </script>
+  <style>
+    .fade-in { animation: fadeIn .35s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .pw-rule.ok { color: #16a34a; }
+    .pw-rule.fail { color: #dc2626; }
+    .tab-active { border-bottom: 2px solid #0d9488; color: #0d9488; font-weight: 700; }
+    #modal-backdrop { backdrop-filter: blur(4px); }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen font-sans">
+
+<!-- ===== AUTH SCREEN ===== -->
+<div id="screen-auth" class="min-h-screen flex flex-col">
+  <!-- Clean whitespace top (no navbar) -->
+  <div class="pt-8 sm:pt-12"></div>
+
+  <main class="flex-1 flex items-start justify-center px-4 pb-12">
+    <div class="w-full max-w-md fade-in">
+
+      <a href="../index.html" class="inline-flex items-center space-x-1.5 text-xs text-slate-500 hover:text-teal-700 mb-6 transition-colors">
+        <i class="fa-solid fa-arrow-left"></i><span>Kembali ke Gateway</span>
+      </a>
+
+      <div class="flex items-center space-x-3 mb-6">
+        <div class="w-11 h-11 rounded-2xl bg-teal-600 text-white flex items-center justify-center text-xl shadow-lg shadow-teal-600/25">
+          <i class="fa-solid fa-building-columns"></i>
+        </div>
+        <div>
+          <h1 class="text-2xl font-extrabold text-slate-900 leading-tight">Portal PEMDA</h1>
+          <p class="text-xs text-slate-500">Pemerintah Daerah Kota Bekasi · OPD</p>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-3xl border border-slate-200 shadow-lg p-6 sm:p-8">
+
+        <!-- Tabs -->
+        <div class="flex border-b border-slate-200 mb-6 text-sm">
+          <button id="tab-login" onclick="switchTab('login')"
+            class="flex-1 pb-3 text-center transition-colors tab-active">
+            <i class="fa-solid fa-right-to-bracket mr-1.5"></i>Masuk
+          </button>
+          <button id="tab-signup" onclick="switchTab('signup')"
+            class="flex-1 pb-3 text-center text-slate-500 transition-colors">
+            <i class="fa-solid fa-user-plus mr-1.5"></i>Daftarkan OPD
+          </button>
+        </div>
+
+        <div id="auth-msg" class="hidden mb-4 px-4 py-3 rounded-xl text-xs font-semibold"></div>
+
+        <!-- LOGIN FORM -->
+        <form id="form-login" onsubmit="doLogin(event)" class="space-y-4">
+          <div class="bg-teal-50 border border-teal-200 rounded-xl p-3 text-xs text-teal-800">
+            <i class="fa-solid fa-circle-info mr-1"></i>Login Pemda menggunakan <strong>Username Petugas OPD</strong>, bukan email.
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">Username OPD <span class="text-red-500">*</span></label>
+            <div class="relative">
+              <i class="fa-solid fa-id-badge absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+              <input id="login-username" type="text" autocomplete="username" required
+                placeholder="cth: disbima_bekasi"
+                class="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">Password <span class="text-red-500">*</span></label>
+            <div class="relative">
+              <i class="fa-solid fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+              <input id="login-password" type="password" autocomplete="current-password" required
+                placeholder="••••••••"
+                class="w-full pl-9 pr-10 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500">
+              <button type="button" onclick="togglePw('login-password', this)"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            </div>
+          </div>
+          <button type="submit"
+            class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-xl text-sm transition-all shadow-md shadow-teal-600/20 flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-right-to-bracket"></i><span>Masuk ke Dashboard OPD</span>
+          </button>
+        </form>
+
+        <!-- SIGNUP FORM -->
+        <form id="form-signup" onsubmit="doSignup(event)" class="space-y-4 hidden">
+          <div class="bg-orange-50 border border-orange-200 rounded-xl p-3 text-xs text-orange-800">
+            <i class="fa-solid fa-triangle-exclamation mr-1"></i>Pendaftaran OPD baru memerlukan verifikasi admin. Pastikan data lembaga benar.
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">Username OPD <span class="text-red-500">*</span></label>
+            <div class="relative">
+              <i class="fa-solid fa-at absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+              <input id="su-username" type="text" required placeholder="cth: disbima_bekasi"
+                class="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">Nama Dinas / OPD <span class="text-red-500">*</span></label>
+            <div class="relative">
+              <i class="fa-solid fa-building-columns absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+              <input id="su-nama" type="text" required placeholder="cth: Dinas Bina Marga & SDA Kota Bekasi"
+                class="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">Email Dinas <span class="text-red-500">*</span></label>
+            <div class="relative">
+              <i class="fa-solid fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+              <input id="su-email" type="email" required placeholder="dinas@bekasikota.go.id"
+                class="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">Password <span class="text-red-500">*</span></label>
+            <div class="relative">
+              <i class="fa-solid fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+              <input id="su-password" type="password" required placeholder="••••••••"
+                oninput="checkPwRules(this.value)"
+                class="w-full pl-9 pr-10 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500">
+              <button type="button" onclick="togglePw('su-password', this)"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            </div>
+            <div class="mt-2 bg-slate-50 rounded-lg p-3 grid grid-cols-2 gap-1 text-[11px]">
+              <span id="rule-len" class="pw-rule fail"><i class="fa-solid fa-circle mr-1"></i>Min. 8 karakter</span>
+              <span id="rule-lower" class="pw-rule fail"><i class="fa-solid fa-circle mr-1"></i>Huruf kecil (a-z)</span>
+              <span id="rule-upper" class="pw-rule fail"><i class="fa-solid fa-circle mr-1"></i>Huruf besar (A-Z)</span>
+              <span id="rule-sym" class="pw-rule fail"><i class="fa-solid fa-circle mr-1"></i>Simbol (!@#$...)</span>
+            </div>
+          </div>
+          <button type="submit"
+            class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-xl text-sm transition-all shadow-md shadow-teal-600/20 flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-user-plus"></i><span>Daftarkan Akun OPD</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Demo credentials -->
+      <div class="mt-4 bg-teal-50 border border-teal-200 rounded-2xl p-4 text-xs text-teal-800">
+        <p class="font-semibold mb-1"><i class="fa-solid fa-circle-info mr-1"></i>Akun Demo Pemda</p>
+        <p>Username: <code class="bg-teal-100 px-1 rounded">disbima_bekasi</code> &nbsp;|&nbsp; Password: <code class="bg-teal-100 px-1 rounded">PemdaBima2026!</code></p>
+        <p class="mt-1">Username: <code class="bg-teal-100 px-1 rounded">dishub_bekasi</code> &nbsp;|&nbsp; Password: <code class="bg-teal-100 px-1 rounded">DishubBks2026!</code></p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ===== DASHBOARD PEMDA ===== -->
+<div id="screen-dashboard" class="hidden min-h-screen flex flex-col">
+
+  <div class="pt-8 sm:pt-12"></div>
+
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center text-sm shadow">
+          <i class="fa-solid fa-building-columns"></i>
+        </div>
+        <div>
+          <span class="text-sm font-bold text-slate-900" id="dash-nama">-</span>
+          <span class="ml-2 text-[10px] font-semibold text-teal-700 bg-teal-100 px-2 py-0.5 rounded-full border border-teal-200">PEMDA</span>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3">
+        <span class="text-[10px] text-slate-500 hidden sm:block" id="dash-email"></span>
+        <button onclick="AuthApp.logout('../index.html')"
+          class="flex items-center space-x-1.5 text-xs text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 border border-red-200 px-3 py-1.5 rounded-lg transition-colors font-semibold">
+          <i class="fa-solid fa-right-from-bracket"></i><span>Keluar</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+
+    <!-- Page tabs -->
+    <div class="flex space-x-1 bg-slate-200/70 rounded-2xl p-1 mb-8 text-xs font-semibold">
+      <button onclick="showPage('queue')" id="pt-queue"
+        class="flex-1 py-2 rounded-xl text-center transition-all bg-white shadow text-teal-700">
+        <i class="fa-solid fa-inbox mr-1"></i>Antrean Laporan
+      </button>
+      <button onclick="showPage('resolved')" id="pt-resolved"
+        class="flex-1 py-2 rounded-xl text-center transition-all text-slate-600 hover:bg-white/60">
+        <i class="fa-solid fa-circle-check mr-1"></i>Sudah Ditangani
+      </button>
+      <button onclick="showPage('report')" id="pt-report"
+        class="flex-1 py-2 rounded-xl text-center transition-all text-slate-600 hover:bg-white/60">
+        <i class="fa-solid fa-triangle-exclamation mr-1"></i>Laporkan Kendala
+      </button>
+    </div>
+
+    <!-- === ANTREAN LAPORAN === -->
+    <div id="page-queue" class="fade-in">
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="text-lg font-bold text-slate-900"><i class="fa-solid fa-inbox text-teal-600 mr-2"></i>Antrean Laporan Masyarakat</h2>
+        <select id="q-filter" onchange="loadQueue()" class="text-xs px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500">
+          <option value="menunggu_validasi">Menunggu Validasi</option>
+          <option value="terverifikasi">Terverifikasi</option>
+          <option value="sedang_dikerjakan">Sedang Dikerjakan</option>
+          <option value="all">Semua Aktif</option>
+        </select>
+      </div>
+      <div id="queue-list" class="space-y-4">
+        <div class="text-center py-12 text-slate-400 text-sm"><i class="fa-solid fa-spinner fa-spin text-2xl mb-3 block"></i>Memuat antrean...</div>
+      </div>
+    </div>
+
+    <!-- === SUDAH DITANGANI === -->
+    <div id="page-resolved" class="hidden fade-in">
+      <h2 class="text-lg font-bold text-slate-900 mb-5"><i class="fa-solid fa-circle-check text-teal-600 mr-2"></i>Laporan Selesai Ditangani</h2>
+      <div id="resolved-list" class="space-y-4">
+        <div class="text-center py-12 text-slate-400 text-sm"><i class="fa-solid fa-spinner fa-spin text-2xl mb-3 block"></i>Memuat...</div>
+      </div>
+    </div>
+
+    <!-- === LAPORKAN KENDALA === -->
+    <div id="page-report" class="hidden fade-in">
+      <h2 class="text-lg font-bold text-slate-900 mb-5"><i class="fa-solid fa-triangle-exclamation text-teal-600 mr-2"></i>Laporkan Kendala Website ke Admin</h2>
+      <div class="bg-white rounded-3xl border border-slate-200 shadow p-6 sm:p-8 max-w-lg">
+        <form id="form-sistem" onsubmit="submitKendala(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">Kategori Kendala <span class="text-red-500">*</span></label>
+            <select id="sis-kategori" required class="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white">
+              <option>Bug Antarmuka</option>
+              <option>Data Tidak Tersimpan</option>
+              <option>Tanggapan Tidak Terkirim</option>
+              <option>Login Bermasalah</option>
+              <option>Performa Lambat</option>
+              <option>Lainnya</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">Deskripsi Kendala <span class="text-red-500">*</span></label>
+            <textarea id="sis-desc" required rows="4" placeholder="Jelaskan kendala yang terjadi secara detail..."
+              class="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"></textarea>
+          </div>
+          <div id="sis-msg" class="hidden px-4 py-3 rounded-xl text-xs font-semibold"></div>
+          <button type="submit"
+            class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl text-sm transition-all shadow-md shadow-orange-500/20">
+            <i class="fa-solid fa-paper-plane mr-2"></i>Kirim ke Admin
+          </button>
+        </form>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ===== MODAL BALAS LAPORAN ===== -->
+<div id="modal-backdrop" class="hidden fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="font-bold text-slate-900 text-base"><i class="fa-solid fa-reply text-teal-600 mr-2"></i>Tanggapi Laporan</h3>
+      <button onclick="closeModal()" class="text-slate-400 hover:text-slate-700 text-xl"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div id="modal-laporan-info" class="bg-slate-50 rounded-2xl p-4 mb-5 border border-slate-200 text-sm"></div>
+
+    <form id="form-tindak" onsubmit="submitTindak(event)" class="space-y-4">
+      <input type="hidden" id="tl-laporan-id">
+      <input type="hidden" id="tl-user-id">
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1.5">Status Terbaru <span class="text-red-500">*</span></label>
+        <select id="tl-status" required class="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white">
+          <option value="terverifikasi">Terverifikasi – Dikonfirmasi di Lapangan</option>
+          <option value="sedang_dikerjakan">Sedang Dikerjakan – Tim Sudah Dikirim</option>
+          <option value="selesai">Selesai – Perbaikan Rampung</option>
+          <option value="ditolak">Ditolak – Bukan Kewenangan OPD Ini</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1.5">Keterangan Tindakan <span class="text-red-500">*</span></label>
+        <textarea id="tl-keterangan" required rows="4" placeholder="Jelaskan tindakan yang telah atau akan dilakukan..."
+          class="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"></textarea>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1.5">URL Foto Hasil Perbaikan</label>
+        <input id="tl-foto" type="url" placeholder="https://..."
+          class="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500">
+      </div>
+      <div id="tl-msg" class="hidden px-4 py-3 rounded-xl text-xs font-semibold"></div>
+      <div class="flex space-x-3 pt-2">
+        <button type="button" onclick="closeModal()" class="flex-1 py-3 rounded-xl border border-slate-300 text-slate-700 font-semibold text-sm">Batal</button>
+        <button type="submit" class="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-xl text-sm transition-all shadow-md shadow-teal-600/20">
+          <i class="fa-solid fa-paper-plane mr-2"></i>Kirim Tanggapan Resmi
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function $(id) { return document.getElementById(id); }
+
+  function showMsg(id, msg, type) {
+    const el = $(id);
+    if (!el) return;
+    el.textContent = msg;
+    el.className = `mb-4 px-4 py-3 rounded-xl text-xs font-semibold ${type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200'}`;
+    el.classList.remove('hidden');
+  }
+
+  function togglePw(id, btn) {
+    const inp = $(id);
+    if (inp.type === 'password') { inp.type = 'text'; btn.innerHTML = '<i class="fa-solid fa-eye-slash"></i>'; }
+    else { inp.type = 'password'; btn.innerHTML = '<i class="fa-solid fa-eye"></i>'; }
+  }
+
+  function switchTab(tab) {
+    $('form-login').classList.toggle('hidden', tab !== 'login');
+    $('form-signup').classList.toggle('hidden', tab !== 'signup');
+    $('tab-login').classList.toggle('tab-active', tab === 'login');
+    $('tab-login').classList.toggle('text-slate-500', tab !== 'login');
+    $('tab-signup').classList.toggle('tab-active', tab === 'signup');
+    $('tab-signup').classList.toggle('text-slate-500', tab !== 'signup');
+    $('auth-msg').classList.add('hidden');
+  }
+
+  function checkPwRules(val) {
+    function set(id, ok) { $(id).className = 'pw-rule ' + (ok ? 'ok' : 'fail'); }
+    set('rule-len', val.length >= 8);
+    set('rule-lower', /[a-z]/.test(val));
+    set('rule-upper', /[A-Z]/.test(val));
+    set('rule-sym', /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(val));
+  }
+
+  /* AUTH */
+  async function doLogin(e) {
+    e.preventDefault();
+    const result = await AuthApp.login('pemda', $('login-username').value, $('login-password').value);
+    if (result.success) showDashboard(result.user);
+    else showMsg('auth-msg', result.error, 'error');
+  }
+
+  async function doSignup(e) {
+    e.preventDefault();
+    const result = await AuthApp.signUp('pemda', {
+      username: $('su-username').value,
+      nama: $('su-nama').value,
+      email: $('su-email').value,
+      password: $('su-password').value
+    });
+    if (result.success) {
+      showMsg('auth-msg', '✅ Akun OPD berhasil dibuat! Memuat workspace...', 'success');
+      setTimeout(() => showDashboard(result.user), 1200);
+    } else {
+      showMsg('auth-msg', result.error, 'error');
+    }
+  }
+
+  /* DASHBOARD */
+  function showDashboard(user) {
+    $('screen-auth').classList.add('hidden');
+    $('screen-dashboard').classList.remove('hidden');
+    $('dash-nama').textContent = user.nama || user.username;
+    $('dash-email').textContent = user.email || '';
+    loadQueue();
+  }
+
+  function showPage(page) {
+    ['queue', 'resolved', 'report'].forEach(p => {
+      const el = $('page-' + p);
+      if (el) el.classList.add('hidden');
+      const btn = $('pt-' + p);
+      if (btn) { btn.classList.remove('bg-white', 'shadow', 'text-teal-700'); btn.classList.add('text-slate-600'); }
+    });
+    const active = $('page-' + page);
+    if (active) active.classList.remove('hidden');
+    const activeBtn = $('pt-' + page);
+    if (activeBtn) { activeBtn.classList.add('bg-white', 'shadow', 'text-teal-700'); activeBtn.classList.remove('text-slate-600'); }
+
+    if (page === 'resolved') loadResolved();
+  }
+
+  /* STATUS BADGE */
+  function statusBadge(s) {
+    const map = { menunggu_validasi:'bg-yellow-100 text-yellow-800 border-yellow-200', terverifikasi:'bg-blue-100 text-blue-800 border-blue-200', sedang_dikerjakan:'bg-orange-100 text-orange-800 border-orange-200', selesai:'bg-green-100 text-green-800 border-green-200', ditolak:'bg-red-100 text-red-800 border-red-200' };
+    const labels = { menunggu_validasi:'Menunggu', terverifikasi:'Terverifikasi', sedang_dikerjakan:'Dikerjakan', selesai:'Selesai', ditolak:'Ditolak' };
+    return `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${map[s]||'bg-slate-100 text-slate-700 border-slate-200'}">${labels[s]||s}</span>`;
+  }
+
+  function timeAgo(iso) {
+    const diff = Date.now() - new Date(iso).getTime();
+    const m = Math.floor(diff/60000), h = Math.floor(m/60), d = Math.floor(h/24);
+    if (d > 0) return d + ' hari lalu';
+    if (h > 0) return h + ' jam lalu';
+    if (m > 0) return m + ' menit lalu';
+    return 'Baru saja';
+  }
+
+  function renderQueueCard(lap) {
+    const tl = (lap.tindak_lanjut || []);
+    const tlHtml = tl.length > 0 ? `
+      <div class="mt-3 border-t border-slate-100 pt-3">
+        <p class="text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Tanggapan Sebelumnya</p>
+        ${tl.map(t => `<div class="text-xs text-teal-800 bg-teal-50 border border-teal-200 rounded-lg p-2 mb-1">${t.keterangan_tindakan}</div>`).join('')}
+      </div>` : '';
+
+    return `
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 hover:shadow-md transition-shadow">
+        <div class="flex items-start justify-between gap-2 mb-3">
+          <div class="flex-1">
+            <div class="flex items-center gap-2 mb-1">
+              ${statusBadge(lap.status_laporan)}
+              <span class="text-[10px] text-slate-500">${timeAgo(lap.tanggal_lapor)}</span>
+            </div>
+            <h3 class="font-bold text-slate-900 text-sm leading-snug">${lap.judul_laporan}</h3>
+            <p class="text-xs text-slate-500 mt-0.5"><i class="fa-solid fa-user mr-1"></i>${lap.pelapor_nama} · ${lap.pelapor_domisili}</p>
+          </div>
+          ${lap.foto_bukti ? `<img src="${lap.foto_bukti}" class="w-20 h-16 object-cover rounded-xl border border-slate-200 flex-shrink-0" onerror="this.style.display='none'">` : ''}
+        </div>
+        <p class="text-xs text-slate-600 leading-relaxed mb-3">${lap.deskripsi_masalah}</p>
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] text-slate-400"><i class="fa-solid fa-tag mr-1"></i>${lap.infrastruktur_nama||'Fasilitas Umum'}</span>
+          <button onclick="openModal(${lap.laporan_id}, ${lap.user_id}, '${encodeURIComponent(lap.judul_laporan)}', '${encodeURIComponent(lap.deskripsi_masalah)}')"
+            class="flex items-center space-x-1.5 bg-teal-600 hover:bg-teal-700 text-white font-bold px-4 py-1.5 rounded-xl text-xs transition-all shadow-md shadow-teal-600/20">
+            <i class="fa-solid fa-reply"></i><span>Tanggapi</span>
+          </button>
+        </div>
+        ${tlHtml}
+      </div>`;
+  }
+
+  async function loadQueue() {
+    const list = $('queue-list');
+    const status = $('q-filter').value;
+    list.innerHTML = `<div class="text-center py-12 text-slate-400 text-sm"><i class="fa-solid fa-spinner fa-spin text-2xl mb-3 block"></i>Memuat antrean...</div>`;
+    try {
+      const filter = status === 'all' ? { is_spam: false } : { is_spam: false, status_laporan: status };
+      const data = await DBService.getLaporan(filter);
+      const active = (data || []).filter(l => l.status_laporan !== 'selesai' && l.status_laporan !== 'ditolak');
+      if (active.length === 0) {
+        list.innerHTML = `<div class="text-center py-12 text-slate-400 text-sm"><i class="fa-solid fa-inbox text-4xl mb-3 block opacity-50"></i><p>Tidak ada laporan di antrean ini.</p></div>`;
+      } else {
+        list.innerHTML = active.map(l => renderQueueCard(l)).join('');
+      }
+    } catch (err) {
+      list.innerHTML = `<div class="text-center py-8 text-red-500 text-sm">Gagal memuat antrean.</div>`;
+    }
+  }
+
+  async function loadResolved() {
+    const list = $('resolved-list');
+    list.innerHTML = `<div class="text-center py-12 text-slate-400 text-sm"><i class="fa-solid fa-spinner fa-spin text-2xl mb-3 block"></i>Memuat...</div>`;
+    try {
+      const data = await DBService.getLaporan({ is_spam: false, status_laporan: 'selesai' });
+      if (!data || data.length === 0) {
+        list.innerHTML = `<div class="text-center py-12 text-slate-400 text-sm"><i class="fa-solid fa-box-open text-4xl mb-3 block opacity-50"></i><p>Belum ada laporan yang selesai.</p></div>`;
+      } else {
+        list.innerHTML = data.map(l => renderQueueCard(l)).join('');
+      }
+    } catch (err) {
+      list.innerHTML = `<div class="text-center py-8 text-red-500 text-sm">Gagal memuat data.</div>`;
+    }
+  }
+
+  /* MODAL */
+  function openModal(laporanId, userId, judulEnc, deskEnc) {
+    $('tl-laporan-id').value = laporanId;
+    $('tl-user-id').value = userId;
+    $('tl-keterangan').value = '';
+    $('tl-foto').value = '';
+    $('tl-msg').classList.add('hidden');
+    $('modal-laporan-info').innerHTML = `
+      <p class="font-bold text-slate-900 mb-1 text-sm">${decodeURIComponent(judulEnc)}</p>
+      <p class="text-xs text-slate-600 leading-relaxed">${decodeURIComponent(deskEnc)}</p>`;
+    $('modal-backdrop').classList.remove('hidden');
+  }
+
+  function closeModal() {
+    $('modal-backdrop').classList.add('hidden');
+  }
+
+  async function submitTindak(e) {
+    e.preventDefault();
+    const result = await DBService.submitTindakLanjut({
+      laporan_id: $('tl-laporan-id').value,
+      user_id: $('tl-user-id').value,
+      status_terbaru: $('tl-status').value,
+      keterangan_tindakan: $('tl-keterangan').value,
+      foto_hasil_perbaikan: $('tl-foto').value
+    });
+    if (result.success) {
+      showMsg('tl-msg', '✅ Tanggapan resmi berhasil dikirim! Pelapor akan menerima notifikasi.', 'success');
+      setTimeout(() => { closeModal(); loadQueue(); }, 1500);
+    } else {
+      showMsg('tl-msg', result.error || 'Gagal mengirim tanggapan.', 'error');
+    }
+  }
+
+  /* KENDALA SISTEM */
+  async function submitKendala(e) {
+    e.preventDefault();
+    const session = AuthApp.getSession();
+    const result = await DBService.createLaporanSistem({
+      nama_pelapor: session ? session.nama : 'Petugas OPD',
+      email_pelapor: session ? session.email : '',
+      kategori_kendala: $('sis-kategori').value,
+      deskripsi_kendala: $('sis-desc').value
+    });
+    if (result.success) {
+      showMsg('sis-msg', '✅ Tiket kendala berhasil dikirim ke Admin!', 'success');
+      $('form-sistem').reset();
+    } else {
+      showMsg('sis-msg', 'Gagal mengirim tiket kendala.', 'error');
+    }
+  }
+
+  /* INIT */
+  window.addEventListener('DOMContentLoaded', () => {
+    const session = AuthApp.getSession();
+    if (session && session.role === 'pemda') showDashboard(session);
+  });
+
+  // Close modal on backdrop click
+  $('modal-backdrop').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+</script>
+</body>
+</html>

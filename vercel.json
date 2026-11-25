@@ -1,3 +1,7 @@
 {
-  "cleanUrls": true
+  "rewrites": [
+    { "source": "/masyarakat", "destination": "/masyarakat.html" },
+    { "source": "/pemda",      "destination": "/pemda.html" },
+    { "source": "/admin",      "destination": "/admin.html" }
+  ]
 }
